@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>動画生成プロンプトジェネレーター</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 全体のスタイル */
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        /* カテゴリのスタイル */
+        .style-category {
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .style-category .category-header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .style-category .category-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 1.2em;
+        }
+
+        /* サブカテゴリのスタイル */
+        .style-subcategory {
+            margin: 15px 0;  /* 上下マージンのみ設定 */
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-left: 4px solid #4CAF50;
+            width: 100%;  /* 幅を100%に設定 */
+        }
+
+        .style-subcategory .category-header h4 {
+            margin: 0;
+            color: #444;
+            font-size: 1.1em;
+        }
+
+        /* カテゴリコンテンツのスタイル */
+        .category-content {
+            display: flex;
+            flex-direction: column;  /* 縦方向に配置 */
+            gap: 10px;
+        }
+
+        /* サブカテゴリ内のコンテンツ */
+        .style-subcategory .category-content {
+            display: flex;
+            flex-direction: row;  /* 横方向に配置 */
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px 0;
+        }
+
+        /* アイテムのスタイル */
+        .style-item {
+            margin: 5px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            flex: 0 1 auto;  /* フレックスアイテムの伸縮を調整 */
+        }
+
+        .style-item:hover {
+            background: #f0f0f0;
+            transform: translateX(5px);
+        }
+
+        /* 映像表現スタイルのレイアウト */
+        .style-grid {
+            display: flex;
+            flex-direction: column;  /* 縦方向に配置 */
+            gap: 20px;
+            padding: 15px;
+        }
+
+        /* ツールチップのスタイル */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 5px;
+            border-radius: 6px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* 深さに応じたスタイル */
+        .depth-0 {
+            border-left: 5px solid #4a90e2;  /* 青系 */
+            background: linear-gradient(to right, rgba(74, 144, 226, 0.1), transparent);
+        }
+
+        .depth-1 {
+            border-left: 4px solid #50c878;  /* 緑系 */
+            background: linear-gradient(to right, rgba(80, 200, 120, 0.1), transparent);
+            margin-left: 20px;
+        }
+
+        .depth-2 {
+            border-left: 3px solid #e6a23c;  /* オレンジ系 */
+            background: linear-gradient(to right, rgba(230, 162, 60, 0.1), transparent);
+            margin-left: 40px;
+        }
+
+        /* カテゴリヘッダーの色 */
+        .depth-0 .category-header h3 {
+            color: #4a90e2;
+        }
+
+        .depth-1 .category-header h4 {
+            color: #50c878;
+        }
+
+        .depth-2 .category-header h4 {
+            color: #e6a23c;
+        }
+
+        /* アイテムのホバー効果 */
+        .style-item:hover,
+        .angle-item:hover {
+            background: #f5f7fa;
+            transform: translateX(5px);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* ツールチップの色分け */
+        .depth-0 .tooltip .tooltiptext {
+            background-color: #4a90e2;
+        }
+
+        .depth-1 .tooltip .tooltiptext {
+            background-color: #50c878;
+        }
+
+        .depth-2 .tooltip .tooltiptext {
+            background-color: #e6a23c;
+        }
+
+        /* カテゴリコンテンツの背景 */
+        .category-content {
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        /* アイテムの基本スタイル */
+        .style-item,
+        .angle-item {
+            background: white;
+            border: 1px solid rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        /* 映画スタイルセクションの色分け */
+        .movie-style-item {
+            border-left: 3px solid #9c27b0;  /* 紫系 */
+            background: linear-gradient(to right, rgba(156, 39, 176, 0.1), transparent);
+        }
+
+        .movie-style-item:hover {
+            background: #f5f7fa;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* 演技セクションの色分け */
+        .emotion-grid div {
+            border-left: 3px solid #f44336;  /* 赤系 */
+            background: linear-gradient(to right, rgba(244, 67, 54, 0.1), transparent);
+            padding: 8px;
+            border-radius: 4px;
+            margin: 4px;
+        }
+
+        /* テーマセクションの入力フィールド */
+        .input-group input {
+            border: 2px solid #dcdfe6;
+            border-radius: 4px;
+            padding: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            border-color: #4a90e2;
+            box-shadow: 0 0 5px rgba(74, 144, 226, 0.3);
+        }
+
+        /* ボタンのスタイル */
+        .submit-btn,
+        .copy-btn {
+            background: linear-gradient(45deg, #4a90e2, #50c878);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover,
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        /* レスポンシブデザイン */
+        @media (max-width: 768px) {
+            .style-subcategory .category-content {
+                flex-direction: column;  /* モバイルでは縦方向に配置 */
+            }
+
+            .style-item {
+                display: inline-block;
+                padding: 10px;
+            }
+
+            .tooltip .tooltiptext {
+                width: 150px;
+                margin-left: -75px;
+            }
+        }
+
+        /* 既存のスタイル */
+        .style-category, .angle-category {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        /* 映像表現スタイルのレイアウト */
+        .style-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 15px;
+        }
+
+        .style-category {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .style-category .category-content {
+            flex: 1;
+            display: flex;
+            gap: 10px;
+        }
+
+        .category-description {
+            font-style: italic;
+            color: #666;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .movie-style-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            justify-content: flex-start;
+        }
+
+        .movie-style-item {
+            padding: 8px;
+            background-color: white;
+            border-radius: 4px;
+            border: 1px solid #eee;
+            transition: all 0.2s;
+        }
+
+        .movie-style-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 1200px) {
+            .style-category {
+                max-width: calc(50% - 20px);
+            }
+        }
+
+        /* 共通のカテゴリスタイル */
+        .style-category, .angle-category {
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .style-category .category-header,
+        .angle-category .category-header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .style-category .category-header h3,
+        .angle-category .category-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 1.2em;
+        }
+
+        /* 共通のサブカテゴリスタイル */
+        .style-subcategory,
+        .angle-subcategory {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-left: 4px solid #4CAF50;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .style-subcategory .category-header h4,
+        .angle-subcategory .category-header h4 {
+            margin: 0;
+            color: #444;
+            font-size: 1.1em;
+        }
+
+        /* 共通のコンテンツスタイル */
+        .category-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* サブカテゴリ内のコンテンツ */
+        .style-subcategory .category-content,
+        .angle-subcategory .category-content {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px 0;
+        }
+
+        /* アイテムのスタイル */
+        .style-item,
+        .angle-item {
+            display: inline-block;
+            margin: 5px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .style-item:hover,
+        .angle-item:hover {
+            background: #f0f0f0;
+            transform: translateX(5px);
+        }
+
+        /* グリッドレイアウト */
+        .style-grid,
+        .angle-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* レスポンシブデザイン */
+        @media (max-width: 768px) {
+            .style-subcategory .category-content,
+            .angle-subcategory .category-content {
+                flex-direction: column;
+            }
+
+            .style-item,
+            .angle-item {
+                display: inline-block;
+                padding: 10px;
+            }
+        }
+
+        /* カメラ制御セクションのスタイル */
+        .camera-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .camera-category {
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .camera-category .category-header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .camera-category .category-header h3 {
+            margin: 0;
+            color: #4a90e2;
+            font-size: 1.2em;
+        }
+
+        .camera-subcategory {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-left: 4px solid #50c878;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .camera-item {
+            display: inline-block;
+            margin: 5px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .camera-item:hover {
+            background: #f5f7fa;
+            transform: translateX(5px);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* カメラ制御の深さに応じたスタイル */
+        .camera-category.depth-0 {
+            border-left: 5px solid #4a90e2;
+            background: linear-gradient(to right, rgba(74, 144, 226, 0.1), transparent);
+        }
+
+        .camera-category.depth-1 {
+            border-left: 4px solid #50c878;
+            background: linear-gradient(to right, rgba(80, 200, 120, 0.1), transparent);
+            margin-left: 20px;
+        }
+
+        .camera-category.depth-2 {
+            border-left: 3px solid #e6a23c;
+            background: linear-gradient(to right, rgba(230, 162, 60, 0.1), transparent);
+            margin-left: 40px;
+        }
+
+        /* 画角セクションのスタイル */
+        .angle-category {
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .angle-category .category-header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .angle-category .category-header h3 {
+            margin: 0;
+            color: #4a90e2;
+            font-size: 1.2em;
+        }
+
+        .angle-category .category-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .angle-item {
+            flex: 0 1 auto;
+            margin: 5px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .angle-item:hover {
+            background: #f5f7fa;
+            transform: translateX(5px);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* 画角の深さに応じたスタイル */
+        .angle-category.depth-0 {
+            border-left: 5px solid #4a90e2;
+            background: linear-gradient(to right, rgba(74, 144, 226, 0.1), transparent);
+        }
+
+        .angle-category.depth-1 {
+            border-left: 4px solid #50c878;
+            background: linear-gradient(to right, rgba(80, 200, 120, 0.1), transparent);
+            margin-left: 20px;
+        }
+
+        .category-description {
+            width: 100%;
+            font-style: italic;
+            color: #666;
+            margin-bottom: 10px;
+            padding: 5px;
+            background: rgba(255,255,255,0.7);
+            border-radius: 4px;
+        }
+
+        /* 既存のスタイル */
+        .required {
+            color: #ff4444;
+            font-size: 0.9em;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>動画生成プロンプトジェネレーター</h1>
+        <form id="promptForm">
+            <!-- スタイル -->
+            <section class="section">
+                <h2>映像表現スタイル</h2>
+                <div class="style-grid" id="styleSection">
+                    <!-- JavaScriptで動的に生成 -->
+                </div>
+            </section>
+
+            <!-- テーマ -->
+            <section class="section">
+                <h2>テーマ</h2>
+                <div class="theme-inputs">
+                    <div class="input-group">
+                        <label for="who">誰が：<span class="required">＊必須</span></label>
+                        <input type="text" id="who" name="who" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="what">何を：<span class="required">＊必須</span></label>
+                        <input type="text" id="what" name="what" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="where">どこで：</label>
+                        <input type="text" id="where" name="where">
+                    </div>
+                    <div class="input-group">
+                        <label for="how">どうやって：</label>
+                        <input type="text" id="how" name="how">
+                    </div>
+                    <div class="input-group">
+                        <label for="when">いつ：</label>
+                        <input type="text" id="when" name="when">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 演技 -->
+            <section class="section">
+                <h2>演技</h2>
+                <div class="emotion-grid">
+                    <div><input type="checkbox" id="sad" name="emotion" value="悲しい"><label for="sad">悲しい</label></div>
+                    <div><input type="checkbox" id="happy" name="emotion" value="楽しい"><label for="happy">楽しい</label></div>
+                    <div><input type="checkbox" id="painful" name="emotion" value="苦しい"><label for="painful">苦しい</label></div>
+                    <div><input type="checkbox" id="glad" name="emotion" value="嬉しい"><label for="glad">嬉しい</label></div>
+                    <div><input type="checkbox" id="funny" name="emotion" value="面白い"><label for="funny">面白い</label></div>
+                    <div><input type="checkbox" id="surprised" name="emotion" value="驚き"><label for="surprised">驚き</label></div>
+                    <div><input type="checkbox" id="embarrassed" name="emotion" value="恥ずかしい"><label for="embarrassed">恥ずかしい</label></div>
+                    <div><input type="checkbox" id="dazed" name="emotion" value="茫然"><label for="dazed">茫然</label></div>
+                    <div><input type="checkbox" id="shocked" name="emotion" value="愕然"><label for="shocked">愕然</label></div>
+                    <div><input type="checkbox" id="disappointed" name="emotion" value="がっかり"><label for="disappointed">がっかり</label></div>
+                </div>
+            </section>
+
+            <!-- 画角 -->
+            <section class="section">
+                <h2>画角</h2>
+                <div class="angle-grid" id="angleSection">
+                    <!-- JavaScriptで動的に生成 -->
+                </div>
+            </section>
+
+            <!-- カメラ制御 -->
+            <section class="section">
+                <h2>カメラ制御</h2>
+                <div class="camera-grid" id="cameraSection">
+                    <!-- JavaScriptで動的に生成 -->
+                </div>
+            </section>
+
+            <!-- 背景 -->
+            <section class="section">
+                <h2>背景</h2>
+                <div class="input-group">
+                    <label for="background">どこで撮影するか：</label>
+                    <input type="text" id="background" name="background">
+                </div>
+            </section>
+
+            <!-- 構成 -->
+            <section class="section">
+                <h2>構成（特定の映画風）</h2>
+                <div class="composition-grid" id="compositionSection">
+                    <!-- JavaScriptで動的に生成 -->
+                </div>
+            </section>
+
+            <button type="submit" class="submit-btn">プロンプト生成</button>
+        </form>
+
+        <div class="output-section">
+            <h2>生成されたプロンプト</h2>
+            <textarea id="outputText" readonly></textarea>
+            <button id="copyButton" class="copy-btn">コピー</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
